@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
 <title>Cell Framework — Skill Tree</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -10,571 +10,582 @@
     background: #0a0a1a;
     color: #e0e0e0;
     font-family: 'Segoe UI', system-ui, sans-serif;
-    overflow: hidden;
-    height: 100vh;
-    width: 100vw;
+    min-height: 100vh;
+    -webkit-overflow-scrolling: touch;
   }
-  
-  #canvas-container {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    overflow: auto;
-    cursor: grab;
-  }
-  
-  #canvas-container:active { cursor: grabbing; }
   
   #tree {
     position: relative;
-    width: 1400px;
-    height: 2200px;
+    max-width: 800px;
     margin: 0 auto;
-    padding: 40px 20px;
+    padding: 20px 16px 100px;
   }
   
   h1 {
     text-align: center;
-    font-size: 28px;
+    font-size: 22px;
     color: #ffd700;
     text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-    padding: 20px 0 10px;
-    letter-spacing: 2px;
+    padding: 16px 0 6px;
+    letter-spacing: 1px;
   }
   
   .subtitle {
     text-align: center;
     color: #888;
-    font-size: 14px;
-    margin-bottom: 30px;
+    font-size: 12px;
+    margin-bottom: 24px;
+    font-style: italic;
+    padding: 0 20px;
+  }
+  
+  .tier {
+    margin-bottom: 12px;
+  }
+  
+  .tier-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border-left: 3px solid #333;
+  }
+  
+  .tier-header .tier-name {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #555;
+    font-weight: 700;
+  }
+  
+  .tier-header .tier-analogy {
+    font-size: 11px;
+    color: #777;
     font-style: italic;
   }
   
-  svg.connections {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 1;
-  }
-  
-  .tier-label {
-    position: absolute;
-    left: 20px;
-    color: #444;
-    font-size: 11px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    transform: rotate(180deg);
+  .nodes-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 8px;
+    justify-content: center;
   }
   
   .node {
-    position: absolute;
-    width: 160px;
-    padding: 14px 12px;
-    border-radius: 12px;
+    flex: 1 1 calc(50% - 10px);
+    max-width: calc(50% - 5px);
+    min-width: 140px;
+    padding: 12px 10px;
+    border-radius: 10px;
     text-align: center;
-    z-index: 10;
-    cursor: pointer;
-    transition: all 0.3s ease;
     border: 2px solid;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
   }
   
-  .node:hover {
-    transform: scale(1.08);
-    z-index: 20;
-  }
+  .node.expanded .detail { display: block; }
+  .node .detail { display: none; }
   
-  .node .icon { font-size: 24px; margin-bottom: 6px; }
-  .node .name { font-size: 13px; font-weight: 700; margin-bottom: 4px; line-height: 1.2; }
+  .node .icon { font-size: 22px; margin-bottom: 4px; }
+  .node .name { font-size: 12px; font-weight: 700; margin-bottom: 2px; line-height: 1.2; }
   .node .desc { font-size: 10px; opacity: 0.7; line-height: 1.3; }
-  .node .level { font-size: 9px; opacity: 0.5; margin-top: 4px; letter-spacing: 1px; }
+  .node .level-tag {
+    font-size: 8px;
+    opacity: 0.4;
+    letter-spacing: 1px;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
   
-  /* Unlocked — completed */
+  .node .detail {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    text-align: left;
+  }
+  
+  .node .detail .problem {
+    font-size: 11px;
+    color: #ccc;
+    line-height: 1.4;
+    margin-bottom: 6px;
+  }
+  
+  .node .detail .problem::before {
+    content: "💡 ";
+  }
+  
+  .node .detail .requires {
+    font-size: 10px;
+    color: #888;
+  }
+  
+  .node .detail .requires span { color: #4ade80; }
+  
+  .connector {
+    text-align: center;
+    padding: 4px 0;
+    color: #333;
+    font-size: 16px;
+    line-height: 1;
+  }
+  
+  /* Node states */
   .node.unlocked {
-    background: rgba(34, 197, 94, 0.15);
+    background: rgba(34, 197, 94, 0.12);
     border-color: #22c55e;
-    box-shadow: 0 0 15px rgba(34, 197, 94, 0.2), inset 0 0 15px rgba(34, 197, 94, 0.05);
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.15);
   }
   .node.unlocked .name { color: #4ade80; }
   
-  /* Current — in progress */
   .node.current {
-    background: rgba(59, 130, 246, 0.2);
+    background: rgba(59, 130, 246, 0.15);
     border-color: #3b82f6;
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), inset 0 0 20px rgba(59, 130, 246, 0.05);
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.25);
     animation: pulse 2s ease-in-out infinite;
   }
   .node.current .name { color: #60a5fa; }
   
-  /* Available — can work on next */
   .node.available {
-    background: rgba(251, 191, 36, 0.12);
+    background: rgba(251, 191, 36, 0.1);
     border-color: #f59e0b;
-    box-shadow: 0 0 10px rgba(251, 191, 36, 0.15);
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.12);
   }
   .node.available .name { color: #fbbf24; }
   
-  /* Locked — prerequisites not met */
   .node.locked {
-    background: rgba(255, 255, 255, 0.03);
-    border-color: #333;
-    opacity: 0.5;
+    background: rgba(255, 255, 255, 0.02);
+    border-color: #2a2a2a;
+    opacity: 0.55;
   }
   .node.locked .name { color: #666; }
   
-  /* Future — far out */
   .node.future {
-    background: rgba(139, 92, 246, 0.08);
-    border-color: #4c1d95;
-    opacity: 0.4;
+    background: rgba(139, 92, 246, 0.06);
+    border-color: #3b1d70;
+    opacity: 0.45;
   }
   .node.future .name { color: #7c3aed; }
   
   @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
-    50% { box-shadow: 0 0 35px rgba(59, 130, 246, 0.5); }
+    0%, 100% { box-shadow: 0 0 16px rgba(59, 130, 246, 0.25); }
+    50% { box-shadow: 0 0 28px rgba(59, 130, 246, 0.45); }
   }
-  
-  .tooltip {
-    display: none;
-    position: fixed;
-    background: #1a1a2e;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 12px 16px;
-    max-width: 280px;
-    z-index: 100;
-    font-size: 12px;
-    line-height: 1.5;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  }
-  
-  .tooltip .tt-title { color: #ffd700; font-weight: 700; margin-bottom: 6px; }
-  .tooltip .tt-problem { color: #ccc; margin-bottom: 8px; }
-  .tooltip .tt-requires { color: #888; font-size: 11px; }
-  .tooltip .tt-requires span { color: #4ade80; }
   
   .legend {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: rgba(10, 10, 26, 0.9);
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 12px 16px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10, 10, 26, 0.95);
+    border-top: 1px solid #222;
+    padding: 8px 16px;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
     z-index: 50;
-    font-size: 11px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
-  .legend div { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
-  .legend .dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid; }
+  .legend .item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #888; }
+  .legend .dot { width: 8px; height: 8px; border-radius: 50%; border: 2px solid; }
   .dot.g { border-color: #22c55e; background: rgba(34,197,94,0.3); }
   .dot.b { border-color: #3b82f6; background: rgba(59,130,246,0.3); }
   .dot.y { border-color: #f59e0b; background: rgba(251,191,36,0.3); }
   .dot.gr { border-color: #333; background: rgba(255,255,255,0.05); }
   .dot.p { border-color: #4c1d95; background: rgba(139,92,246,0.1); }
+  
+  /* Tap hint */
+  .tap-hint {
+    text-align: center;
+    color: #444;
+    font-size: 10px;
+    margin-bottom: 16px;
+  }
+  
+  @media (min-width: 600px) {
+    .node { flex: 1 1 calc(33% - 10px); max-width: calc(33% - 7px); }
+    h1 { font-size: 26px; }
+  }
+  
+  @media (max-width: 380px) {
+    .node { flex: 1 1 100%; max-width: 100%; }
+    .legend { gap: 8px; }
+    .legend .item { font-size: 9px; }
+  }
 </style>
 </head>
 <body>
 
-<div id="canvas-container">
 <div id="tree">
-  <h1>🧬 CELL FRAMEWORK — SKILL TREE</h1>
-  <p class="subtitle">"Necessity is the mother of invention" — each node unlocks because the problem demands it</p>
+  <h1>🧬 CELL SKILL TREE</h1>
+  <p class="subtitle">"The problem demands the concept" — each node exists because a constraint makes it necessary</p>
+  <p class="tap-hint">tap any node to expand</p>
   
-  <svg class="connections" id="svg"></svg>
-  
-  <!-- TIER 0: FOUNDATION (y: 160) -->
-  <div class="tier-label" style="top: 160px;">FOUNDATION</div>
-  
-  <div class="node unlocked" id="n-agent-call" style="left: 580px; top: 160px;"
-       data-problem="You need to ask an AI to do something and get an answer back."
-       data-requires="None — this is where it all starts"
-       data-connects="n-evaluate,n-agent-types">
-    <div class="icon">🔌</div>
-    <div class="name">Agent Call</div>
-    <div class="desc">Call an agent, get a result</div>
-    <div class="level">LEVEL 0</div>
+  <!-- TIER 0: FOUNDATION -->
+  <div class="tier">
+    <div class="tier-header">
+      <span class="tier-name">Foundation</span>
+      <span class="tier-analogy">counting — the absolute basics</span>
+    </div>
+    <div class="nodes-row">
+      <div class="node unlocked" onclick="toggle(this)"
+           data-problem="You need to ask an AI to do something and get an answer back. Everything starts here."
+           data-requires="None — this is where it all starts">
+        <div class="icon">🔌</div>
+        <div class="name">Agent Call</div>
+        <div class="desc">Call an agent, get a result</div>
+        <div class="level-tag">Level 0</div>
+        <div class="detail"></div>
+      </div>
+    </div>
   </div>
   
-  <!-- TIER 1: BASICS (y: 310) -->
-  <div class="tier-label" style="top: 310px;">ARITHMETIC</div>
+  <div class="connector">│</div>
   
-  <div class="node unlocked" id="n-evaluate" style="left: 380px; top: 310px;"
-       data-problem="The agent gave you code. Is it correct? You need to TEST it, not just trust it."
-       data-requires="Agent Call"
-       data-connects="n-iteration,n-sandbox">
-    <div class="icon">✅</div>
-    <div class="name">Evaluation</div>
-    <div class="desc">Judge if output is good (test cases, not vibes)</div>
-    <div class="level">LEVEL 1</div>
+  <!-- TIER 1: ARITHMETIC -->
+  <div class="tier">
+    <div class="tier-header">
+      <span class="tier-name">Arithmetic</span>
+      <span class="tier-analogy">addition & subtraction — basic operations</span>
+    </div>
+    <div class="nodes-row">
+      <div class="node unlocked" onclick="toggle(this)"
+           data-problem="The agent gave you code. Is it correct? You need to TEST it, not just trust it. Execute it, check the output."
+           data-requires="Agent Call">
+        <div class="icon">✅</div>
+        <div class="name">Evaluation</div>
+        <div class="desc">Judge if output is good (test cases, not vibes)</div>
+        <div class="level-tag">Level 1</div>
+        <div class="detail"></div>
+      </div>
+      <div class="node current" onclick="toggle(this)"
+           data-problem="You hardcoded Claude Code. Now you need Cerebras for triage (fast, cheap) and a human for approval (slow, expensive). Same interface, different engines."
+           data-requires="Agent Call">
+        <div class="icon">🔀</div>
+        <div class="name">Agent Types</div>
+        <div class="desc">coding / fast-inference / human — same interface</div>
+        <div class="level-tag">Level 1</div>
+        <div class="detail"></div>
+      </div>
+    </div>
   </div>
   
-  <div class="node current" id="n-agent-types" style="left: 780px; top: 310px;"
-       data-problem="You hardcoded Claude Code. Now you need Cerebras for triage (fast) and a human for approval (expensive). Same interface, different engines."
-       data-requires="Agent Call"
-       data-connects="n-routing,n-human-gate">
-    <div class="icon">🔀</div>
-    <div class="name">Agent Types</div>
-    <div class="desc">coding / fast-inference / human — same interface</div>
-    <div class="level">LEVEL 1</div>
+  <div class="connector">│</div>
+  
+  <!-- TIER 2: ALGEBRA -->
+  <div class="tier">
+    <div class="tier-header">
+      <span class="tier-name">Algebra</span>
+      <span class="tier-analogy">variables & abstraction — things represent other things</span>
+    </div>
+    <div class="nodes-row">
+      <div class="node unlocked" onclick="toggle(this)"
+           data-problem="First attempt failed 3/10 tests. Feed the failures back as specific context, try again. That's the loop."
+           data-requires="Evaluation">
+        <div class="icon">🔄</div>
+        <div class="name">Iteration</div>
+        <div class="desc">Try → fail → learn → retry</div>
+        <div class="level-tag">Level 2</div>
+        <div class="detail"></div>
+      </div>
+      <div class="node unlocked" onclick="toggle(this)"
+           data-problem="Generated code crashed and killed the whole arena. Need process isolation so bad code can't take down the system."
+           data-requires="Evaluation">
+        <div class="icon">📦</div>
+        <div class="name">Sandbox</div>
+        <div class="desc">Run untrusted code safely</div>
+        <div class="level-tag">Level 2</div>
+        <div class="detail"></div>
+      </div>
+      <div class="node available" onclick="toggle(this)"
+           data-problem="Some agents live for milliseconds (triage), others for hours (coding sessions). They need different lifecycle management."
+           data-requires="Agent Types">
+        <div class="icon">⏳</div>
+        <div class="name">Lifecycles</div>
+        <div class="desc">ephemeral / session / persistent / human</div>
+        <div class="level-tag">Level 2</div>
+        <div class="detail"></div>
+      </div>
+      <div class="node available" onclick="toggle(this)"
+           data-problem="You burned $50 using Opus for triage that Haiku could've done. Need cost awareness baked into routing decisions."
+           data-requires="Agent Types">
+        <div class="icon">💰</div>
+        <div class="name">Cost Model</div>
+        <div class="desc">Track tokens, latency, dollars per agent</div>
+        <div class="level-tag">Level 2</div>
+        <div class="detail"></div>
+      </div>
+    </div>
   </div>
   
-  <!-- TIER 2: ALGEBRA (y: 460) -->
-  <div class="tier-label" style="top: 460px;">ALGEBRA</div>
+  <div class="connector">│</div>
   
-  <div class="node unlocked" id="n-iteration" style="left: 220px; top: 460px;"
-       data-problem="First attempt failed 3/10 tests. Feed the failures back, try again. The loop."
-       data-requires="Evaluation"
-       data-connects="n-mutation,n-feedback-loops">
-    <div class="icon">🔄</div>
-    <div class="name">Iteration</div>
-    <div class="desc">Try → fail → learn → retry</div>
-    <div class="level">LEVEL 2</div>
+  <!-- TIER 3: COMPOSITION -->
+  <div class="tier">
+    <div class="tier-header">
+      <span class="tier-name">Composition</span>
+      <span class="tier-analogy">functions — combine operations into new operations</span>
+    </div>
+    <div class="nodes-row">
+      <div class="node available" onclick="toggle(this)"
+           data-problem="You need: plan → code → test → report. Output of each step feeds the next. Can't do it without sequential composition."
+           data-requires="Sandbox, Lifecycles">
+        <div class="icon">➡️</div>
+        <div class="name">Pipeline</div>
+        <div class="desc">Sequential: A → B → C</div>
+        <div class="level-tag">Level 3</div>
+        <div class="detail"></div>
+      </div>
+      <div class="node available" onclick="toggle(this)"
+           data-problem="Security check: 30s. Style check: 30s. Logic check: 30s. Sequential = 90s. Parallel = 30s. Time constraint forces this."
+           data-requires="Sandbox">
+        <div class="icon">⚡</div>
+        <div class="name">Parallel</div>
+        <div class="desc">Fan out + merge results</div>
+        <div class="level-tag">Level 3</div>
+        <div class="detail"></div>
+      </div>
+      <div class="node available" onclick="toggle(this)"
+           data-problem="Bug report → coding agent. Question → fast inference. Emergency → human. You need a triage router."
+           data-requires="Lifecycles, Cost Model">
+        <div class="icon">🔀</div>
+        <div class="name">Routing</div>
+        <div class="desc">Triage → dispatch to right agent</div>
+        <div class="level-tag">Level 3</div>
+        <div class="detail"></div>
+      </div>
+      <div class="node locked" onclick="toggle(this)"
+           data-problem="All 6 agents produce identical code. Solution space collapsed. Need to vary the instructions to explore alternatives."
+           data-requires="Iteration">
+        <div class="icon">🧬</div>
+        <div class="name">Mutation</div>
+        <div class="desc">Vary DNA — prompts, topology, tools</div>
+        <div class="level-tag">Level 3</div>
+        <div class="detail"></div>
+      </div>
+    </div>
   </div>
   
-  <div class="node unlocked" id="n-sandbox" style="left: 480px; top: 460px;"
-       data-problem="Generated code crashed and killed the whole arena. Need isolation."
-       data-requires="Evaluation"
-       data-connects="n-pipeline,n-parallel">
-    <div class="icon">📦</div>
-    <div class="name">Sandbox Execution</div>
-    <div class="desc">Run untrusted code safely (subprocess, container)</div>
-    <div class="level">LEVEL 2</div>
+  <div class="connector">│</div>
+  
+  <!-- TIER 4: PROOF & JUDGMENT -->
+  <div class="tier">
+    <div class="tier-header">
+      <span class="tier-name">Proof</span>
+      <span class="tier-analogy">proofs & theorems — showing your work</span>
+    </div>
+    <div class="nodes-row">
+      <div class="node locked" onclick="toggle(this)"
+           data-problem="Phil can't read code. He needs a VIDEO of clicking download and the file appearing. Proof ≠ code. Proof = evidence it works."
+           data-requires="Pipeline, Parallel">
+        <div class="icon">🎬</div>
+        <div class="name">Proof Generation</div>
+        <div class="desc">Evidence artifacts — tests, screenshots, video</div>
+        <div class="level-tag">Level 4</div>
+        <div class="detail"></div>
+      </div>
+      <div class="node locked" onclick="toggle(this)"
+           data-problem="Judge says 'security issue on line 12.' That needs to reach the coder as specific, actionable input — not just 'try again.'"
+           data-requires="Iteration, Mutation">
+        <div class="icon">📡</div>
+        <div class="name">Feedback Loops</div>
+        <div class="desc">Structured failure → targeted retry</div>
+        <div class="level-tag">Level 4</div>
+        <div class="detail"></div>
+      </div>
+      <div class="node locked" onclick="toggle(this)"
+           data-problem="One judge says pass, another says fail. Need multiple judges with a consensus mechanism — majority, weighted, or unanimous."
+           data-requires="Parallel">
+        <div class="icon">⚖️</div>
+        <div class="name">Tribunal</div>
+        <div class="desc">Multi-judge consensus</div>
+        <div class="level-tag">Level 4</div>
+        <div class="detail"></div>
+      </div>
+      <div class="node locked" onclick="toggle(this)"
+           data-problem="The system is confident but this change touches payments. A human MUST approve. Need human-in-the-loop with proof to judge against."
+           data-requires="Agent Types, Proof Generation">
+        <div class="icon">🧑</div>
+        <div class="name">Human Gate</div>
+        <div class="desc">Human approval with proof</div>
+        <div class="level-tag">Level 4</div>
+        <div class="detail"></div>
+      </div>
+    </div>
   </div>
   
-  <div class="node available" id="n-lifecycle" style="left: 740px; top: 460px;"
-       data-problem="Some agents live for milliseconds (triage), others for hours (coding). They need different lifecycle management."
-       data-requires="Agent Types"
-       data-connects="n-routing,n-pipeline">
-    <div class="icon">⏳</div>
-    <div class="name">Lifecycles</div>
-    <div class="desc">ephemeral / session / persistent / human</div>
-    <div class="level">LEVEL 2</div>
+  <div class="connector">│</div>
+  
+  <!-- TIER 5: CALCULUS -->
+  <div class="tier">
+    <div class="tier-header">
+      <span class="tier-name">Calculus</span>
+      <span class="tier-analogy">rates of change — the system measures and adjusts itself</span>
+    </div>
+    <div class="nodes-row">
+      <div class="node locked" onclick="toggle(this)"
+           data-problem="All branches evolved to identical solutions. Diversity collapsed. Need to detect this and inject wildcards."
+           data-requires="Mutation, Tribunal">
+        <div class="icon">🎯</div>
+        <div class="name">Convergence Detection</div>
+        <div class="desc">Detect + break similarity collapse</div>
+        <div class="level-tag">Level 5</div>
+        <div class="detail"></div>
+      </div>
+      <div class="node locked" onclick="toggle(this)"
+           data-problem="Customer request → code → review → proof → approval → merge → deploy. The full cycle, end to end."
+           data-requires="Pipeline, Routing, Proof, Tribunal, Human Gate">
+        <div class="icon">🔧</div>
+        <div class="name">PR Workflow</div>
+        <div class="desc">Full cycle: request → code → proof → ship</div>
+        <div class="level-tag">Level 5</div>
+        <div class="detail"></div>
+      </div>
+      <div class="node locked" onclick="toggle(this)"
+           data-problem="Phil rejected 3 PRs because they didn't handle error states. System needs to LEARN that Phil cares about error handling."
+           data-requires="Feedback Loops, Human Gate, PR Workflow">
+        <div class="icon">🧠</div>
+        <div class="name">Adaptation</div>
+        <div class="desc">Learn from approval/rejection patterns</div>
+        <div class="level-tag">Level 5</div>
+        <div class="detail"></div>
+      </div>
+    </div>
   </div>
   
-  <div class="node available" id="n-cost-model" style="left: 990px; top: 460px;"
-       data-problem="You burned $50 using Opus for triage. Should've been Haiku. Need cost awareness."
-       data-requires="Agent Types"
-       data-connects="n-routing,n-dept-autonomy">
-    <div class="icon">💰</div>
-    <div class="name">Cost Model</div>
-    <div class="desc">Track tokens, latency, dollars per agent</div>
-    <div class="level">LEVEL 2</div>
+  <div class="connector">│</div>
+  
+  <!-- TIER 6: DIFFERENTIAL EQUATIONS -->
+  <div class="tier">
+    <div class="tier-header">
+      <span class="tier-name">Diff Eq</span>
+      <span class="tier-analogy">systems of change — everything evolving together</span>
+    </div>
+    <div class="nodes-row">
+      <div class="node locked" onclick="toggle(this)"
+           data-problem="Small tweaks every gen aren't enough. Need paradigm shifts every 10-20 gens. Different timescales of change."
+           data-requires="Convergence Detection">
+        <div class="icon">🎼</div>
+        <div class="name">Mutation Cadence</div>
+        <div class="desc">1 / 3 / 5 / 10 / 20 gen disruption cycles</div>
+        <div class="level-tag">Level 6</div>
+        <div class="detail"></div>
+      </div>
+      <div class="node locked" onclick="toggle(this)"
+           data-problem="System asks Phil: 'How did you validate my last change?' Phil says 'I checked the UI.' System now auto-generates UI screenshots."
+           data-requires="Proof Generation, Feedback Loops, Adaptation">
+        <div class="icon">🔬</div>
+        <div class="name">Self-Improving Proof</div>
+        <div class="desc">Proof format evolves from feedback</div>
+        <div class="level-tag">Level 6</div>
+        <div class="detail"></div>
+      </div>
+      <div class="node future" onclick="toggle(this)"
+           data-problem="Tech department handles ALL workflows — features, bugs, monitoring, deploys. Humans only approve high-stakes changes."
+           data-requires="PR Workflow, Adaptation, Routing, Cost Model, Self-Improving Proof">
+        <div class="icon">🏢</div>
+        <div class="name">Department Autonomy</div>
+        <div class="desc">Full tech dept run by cells</div>
+        <div class="level-tag">Level 6</div>
+        <div class="detail"></div>
+      </div>
+    </div>
   </div>
   
-  <!-- TIER 3: COMPOSITION (y: 620) -->
-  <div class="tier-label" style="top: 620px;">COMPOSITION</div>
+  <div class="connector">│</div>
   
-  <div class="node available" id="n-pipeline" style="left: 280px; top: 620px;"
-       data-problem="You need: plan → code → test → report. Output of each step feeds the next."
-       data-requires="Sandbox, Lifecycles"
-       data-connects="n-proof,n-pr-workflow">
-    <div class="icon">➡️</div>
-    <div class="name">Pipeline</div>
-    <div class="desc">Sequential: A → B → C (nn.Sequential)</div>
-    <div class="level">LEVEL 3</div>
+  <!-- TIER 7: TOPOLOGY -->
+  <div class="tier">
+    <div class="tier-header">
+      <span class="tier-name">Topology</span>
+      <span class="tier-analogy">shape of space itself — the architecture changes its own architecture</span>
+    </div>
+    <div class="nodes-row">
+      <div class="node future" onclick="toggle(this)"
+           data-problem="The system needs to modify its OWN architecture. Not just prompts — the composition, routing, agent types. It redesigns itself."
+           data-requires="Mutation Cadence, Department Autonomy">
+        <div class="icon">♾️</div>
+        <div class="name">Self-Evolving Architecture</div>
+        <div class="desc">System modifies its own topology</div>
+        <div class="level-tag">Level 7</div>
+        <div class="detail"></div>
+      </div>
+      <div class="node future" onclick="toggle(this)"
+           data-problem="Tech dept talks to marketing. Marketing talks to finance. Cross-department coordination emerges."
+           data-requires="Department Autonomy, Self-Evolving Architecture">
+        <div class="icon">🏗️</div>
+        <div class="name">Multi-Department</div>
+        <div class="desc">Tech + Marketing + Finance coordinate</div>
+        <div class="level-tag">Level 7</div>
+        <div class="detail"></div>
+      </div>
+    </div>
   </div>
   
-  <div class="node available" id="n-parallel" style="left: 530px; top: 620px;"
-       data-problem="Security check takes 30s. Style check takes 30s. Logic check takes 30s. Sequential = 90s. Parallel = 30s."
-       data-requires="Sandbox"
-       data-connects="n-proof,n-tribunal">
-    <div class="icon">⚡</div>
-    <div class="name">Parallel</div>
-    <div class="desc">Fan out + merge (nn.DataParallel)</div>
-    <div class="level">LEVEL 3</div>
+  <div class="connector">│</div>
+  
+  <!-- TIER 8: ENDGAME -->
+  <div class="tier">
+    <div class="tier-header" style="border-left-color: #ffd700;">
+      <span class="tier-name" style="color: #ffd700;">∞ Endgame</span>
+      <span class="tier-analogy">the business runs itself</span>
+    </div>
+    <div class="nodes-row">
+      <div class="node future" onclick="toggle(this)"
+           data-problem="Revenue comes in. Decisions get made. Humans set strategy. Everything else is automated. The dream."
+           data-requires="Multi-Department, Self-Evolving Architecture">
+        <div class="icon">🌟</div>
+        <div class="name">Autonomous Business</div>
+        <div class="desc">Self-running company</div>
+        <div class="level-tag">ENDGAME</div>
+        <div class="detail"></div>
+      </div>
+    </div>
   </div>
   
-  <div class="node available" id="n-routing" style="left: 800px; top: 620px;"
-       data-problem="Bug report → coding agent. Question → fast inference. Emergency → human. Need a router."
-       data-requires="Lifecycles, Cost Model"
-       data-connects="n-pr-workflow,n-dept-autonomy">
-    <div class="icon">🔀</div>
-    <div class="name">Routing</div>
-    <div class="desc">Triage → dispatch (nn.ModuleDict)</div>
-    <div class="level">LEVEL 3</div>
-  </div>
-  
-  <div class="node locked" id="n-mutation" style="left: 80px; top: 620px;"
-       data-problem="All 6 seeds produce identical code. Need to vary the instructions to explore the solution space."
-       data-requires="Iteration"
-       data-connects="n-feedback-loops,n-convergence">
-    <div class="icon">🧬</div>
-    <div class="name">Mutation</div>
-    <div class="desc">Vary DNA (prompts, topology, tools)</div>
-    <div class="level">LEVEL 3</div>
-  </div>
-  
-  <!-- TIER 4: PROOF & EVOLUTION (y: 790) -->
-  <div class="tier-label" style="top: 790px;">FUNCTIONS</div>
-  
-  <div class="node locked" id="n-proof" style="left: 350px; top: 790px;"
-       data-problem="Phil can't read code. He needs a VIDEO of clicking download and seeing the file. Proof ≠ code. Proof = evidence."
-       data-requires="Pipeline, Parallel"
-       data-connects="n-human-gate,n-pr-workflow,n-self-improving-proof">
-    <div class="icon">🎬</div>
-    <div class="name">Proof Generation</div>
-    <div class="desc">Evidence artifacts (tests, screenshots, video)</div>
-    <div class="level">LEVEL 4</div>
-  </div>
-  
-  <div class="node locked" id="n-feedback-loops" style="left: 100px; top: 790px;"
-       data-problem="Judge says 'security issue in line 12.' That feedback needs to reach the coder as specific, actionable input for the next attempt."
-       data-requires="Iteration, Mutation"
-       data-connects="n-self-improving-proof,n-adaptation">
-    <div class="icon">📡</div>
-    <div class="name">Feedback Loops</div>
-    <div class="desc">Structured failure → targeted retry</div>
-    <div class="level">LEVEL 4</div>
-  </div>
-  
-  <div class="node locked" id="n-tribunal" style="left: 620px; top: 790px;"
-       data-problem="One judge says pass, another says fail. Need multiple judges + consensus mechanism."
-       data-requires="Parallel"
-       data-connects="n-pr-workflow,n-convergence">
-    <div class="icon">⚖️</div>
-    <div class="name">Tribunal</div>
-    <div class="desc">Multi-judge consensus (majority, weighted, unanimous)</div>
-    <div class="level">LEVEL 4</div>
-  </div>
-  
-  <div class="node locked" id="n-human-gate" style="left: 880px; top: 790px;"
-       data-problem="The system is confident but this change touches payments. A human MUST approve before it ships."
-       data-requires="Agent Types, Proof"
-       data-connects="n-pr-workflow,n-adaptation">
-    <div class="icon">🧑</div>
-    <div class="name">Human Gate</div>
-    <div class="desc">Human-in-the-loop approval with proof</div>
-    <div class="level">LEVEL 4</div>
-  </div>
-  
-  <!-- TIER 5: CALCULUS (y: 960) -->
-  <div class="tier-label" style="top: 960px;">CALCULUS</div>
-  
-  <div class="node locked" id="n-convergence" style="left: 80px; top: 960px;"
-       data-problem="All branches evolved to identical solutions. Diversity collapsed. Need detection + wildcard injection."
-       data-requires="Mutation, Tribunal"
-       data-connects="n-mutation-cadence">
-    <div class="icon">🎯</div>
-    <div class="name">Convergence Detection</div>
-    <div class="desc">Detect + break similarity collapse</div>
-    <div class="level">LEVEL 5</div>
-  </div>
-  
-  <div class="node locked" id="n-pr-workflow" style="left: 400px; top: 960px;"
-       data-problem="Customer request → code → review → proof → approval → merge → deploy. The full cycle."
-       data-requires="Pipeline, Routing, Proof, Tribunal, Human Gate"
-       data-connects="n-adaptation,n-dept-autonomy">
-    <div class="icon">🔧</div>
-    <div class="name">PR Workflow</div>
-    <div class="desc">Full cycle: request → code → proof → ship</div>
-    <div class="level">LEVEL 5</div>
-  </div>
-  
-  <div class="node locked" id="n-adaptation" style="left: 700px; top: 960px;"
-       data-problem="Phil rejected 3 PRs because they didn't handle error states. The system needs to LEARN that Phil cares about error handling."
-       data-requires="Feedback Loops, Human Gate, PR Workflow"
-       data-connects="n-self-improving-proof,n-dept-autonomy">
-    <div class="icon">🧠</div>
-    <div class="name">Adaptation</div>
-    <div class="desc">Learn from approval/rejection patterns</div>
-    <div class="level">LEVEL 5</div>
-  </div>
-  
-  <!-- TIER 6: DIFFERENTIAL EQUATIONS (y: 1130) -->
-  <div class="tier-label" style="top: 1130px;">DIFF EQ</div>
-  
-  <div class="node locked" id="n-mutation-cadence" style="left: 100px; top: 1130px;"
-       data-problem="Small tweaks every gen isn't enough. Need paradigm shifts every 10-20 gens. Different timescales of change."
-       data-requires="Convergence Detection"
-       data-connects="n-self-evolving">
-    <div class="icon">🎼</div>
-    <div class="name">Mutation Cadence</div>
-    <div class="desc">1/3/5/10/20 gen cycles of increasing disruption</div>
-    <div class="level">LEVEL 6</div>
-  </div>
-  
-  <div class="node locked" id="n-self-improving-proof" style="left: 400px; top: 1130px;"
-       data-problem="System asks Phil: 'How did you validate my last change?' Phil says 'I checked the UI.' System now generates UI screenshots automatically."
-       data-requires="Proof, Feedback Loops, Adaptation"
-       data-connects="n-dept-autonomy">
-    <div class="icon">🔬</div>
-    <div class="name">Self-Improving Proof</div>
-    <div class="desc">Proof format evolves from human feedback</div>
-    <div class="level">LEVEL 6</div>
-  </div>
-  
-  <div class="node future" id="n-dept-autonomy" style="left: 700px; top: 1130px;"
-       data-problem="Tech department handles ALL tech workflows. Feature requests, bug fixes, monitoring, deploys. Humans only approve."
-       data-requires="PR Workflow, Adaptation, Routing, Cost Model, Self-Improving Proof"
-       data-connects="n-multi-dept,n-self-evolving">
-    <div class="icon">🏢</div>
-    <div class="name">Department Autonomy</div>
-    <div class="desc">Full tech dept run by cells</div>
-    <div class="level">LEVEL 6</div>
-  </div>
-  
-  <!-- TIER 7: THE GOAL (y: 1300) -->
-  <div class="tier-label" style="top: 1300px;">TOPOLOGY</div>
-  
-  <div class="node future" id="n-self-evolving" style="left: 200px; top: 1300px;"
-       data-problem="The system needs to modify its OWN architecture. Not just prompts — the composition, the routing, the agent types."
-       data-requires="Mutation Cadence, Department Autonomy"
-       data-connects="n-multi-dept">
-    <div class="icon">♾️</div>
-    <div class="name">Self-Evolving Architecture</div>
-    <div class="desc">System modifies its own composition + topology</div>
-    <div class="level">LEVEL 7</div>
-  </div>
-  
-  <div class="node future" id="n-multi-dept" style="left: 550px; top: 1300px;"
-       data-problem="Tech dept talks to marketing dept talks to finance. Cross-department coordination. The business runs itself."
-       data-requires="Department Autonomy, Self-Evolving Architecture"
-       data-connects="n-business">
-    <div class="icon">🏗️</div>
-    <div class="name">Multi-Department</div>
-    <div class="desc">Tech + Marketing + Finance coordinate</div>
-    <div class="level">LEVEL 7</div>
-  </div>
-  
-  <!-- TIER 8: ENDGAME (y: 1460) -->
-  <div class="tier-label" style="top: 1460px;">∞</div>
-  
-  <div class="node future" id="n-business" style="left: 420px; top: 1460px;"
-       data-problem="The business runs. Revenue comes in. Decisions get made. Humans set strategy. Everything else is automated."
-       data-requires="Multi-Department, Self-Evolving Architecture">
-    <div class="icon">🌟</div>
-    <div class="name">Autonomous Business</div>
-    <div class="desc">Self-running company. The dream.</div>
-    <div class="level">ENDGAME</div>
-  </div>
-  
-</div>
-</div>
-
-<div class="tooltip" id="tooltip">
-  <div class="tt-title"></div>
-  <div class="tt-problem"></div>
-  <div class="tt-requires"></div>
 </div>
 
 <div class="legend">
-  <div><div class="dot g"></div> Unlocked (proven)</div>
-  <div><div class="dot b"></div> Current (in progress)</div>
-  <div><div class="dot y"></div> Available (prerequisites met)</div>
-  <div><div class="dot gr"></div> Locked (need prerequisites)</div>
-  <div><div class="dot p"></div> Future (many steps away)</div>
+  <div class="item"><div class="dot g"></div>Proven</div>
+  <div class="item"><div class="dot b"></div>Current</div>
+  <div class="item"><div class="dot y"></div>Available</div>
+  <div class="item"><div class="dot gr"></div>Locked</div>
+  <div class="item"><div class="dot p"></div>Future</div>
 </div>
 
 <script>
-// Draw connections
-const svg = document.getElementById('svg');
-const tree = document.getElementById('tree');
-
-function getCenter(el) {
-  const r = el.getBoundingClientRect();
-  const tr = tree.getBoundingClientRect();
-  return {
-    x: r.left - tr.left + r.width / 2,
-    y: r.top - tr.top + r.height / 2
-  };
-}
-
-function drawConnections() {
-  svg.innerHTML = '';
-  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+function toggle(node) {
+  const detail = node.querySelector('.detail');
+  const isExpanded = node.classList.contains('expanded');
   
-  // Gradient for lines
-  const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-  grad.setAttribute('id', 'line-grad');
-  grad.setAttribute('gradientUnits', 'userSpaceOnUse');
-  grad.innerHTML = '<stop offset="0%" stop-color="#22c55e" stop-opacity="0.4"/><stop offset="100%" stop-color="#3b82f6" stop-opacity="0.2"/>';
-  defs.appendChild(grad);
-  svg.appendChild(defs);
-  
-  document.querySelectorAll('.node[data-connects]').forEach(node => {
-    const targets = node.dataset.connects.split(',');
-    const from = getCenter(node);
-    
-    targets.forEach(targetId => {
-      const target = document.getElementById(targetId);
-      if (!target) return;
-      const to = getCenter(target);
-      
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', from.x);
-      line.setAttribute('y1', from.y);
-      line.setAttribute('x2', to.x);
-      line.setAttribute('y2', to.y);
-      
-      // Color based on node state
-      const isUnlocked = node.classList.contains('unlocked') && target.classList.contains('unlocked');
-      const isCurrent = node.classList.contains('unlocked') && (target.classList.contains('current') || target.classList.contains('available'));
-      
-      if (isUnlocked) {
-        line.setAttribute('stroke', '#22c55e');
-        line.setAttribute('stroke-opacity', '0.4');
-      } else if (isCurrent) {
-        line.setAttribute('stroke', '#3b82f6');
-        line.setAttribute('stroke-opacity', '0.3');
-      } else {
-        line.setAttribute('stroke', '#333');
-        line.setAttribute('stroke-opacity', '0.3');
-      }
-      
-      line.setAttribute('stroke-width', '2');
-      line.setAttribute('stroke-dasharray', isUnlocked ? 'none' : '6,4');
-      
-      svg.appendChild(line);
-    });
-  });
-}
-
-// Tooltip
-const tooltip = document.getElementById('tooltip');
-
-document.querySelectorAll('.node').forEach(node => {
-  node.addEventListener('mouseenter', (e) => {
-    const rect = node.getBoundingClientRect();
-    tooltip.querySelector('.tt-title').textContent = node.querySelector('.name').textContent;
-    tooltip.querySelector('.tt-problem').textContent = '💡 ' + (node.dataset.problem || '');
-    tooltip.querySelector('.tt-requires').innerHTML = '⛓️ Requires: <span>' + (node.dataset.requires || 'None') + '</span>';
-    
-    tooltip.style.display = 'block';
-    tooltip.style.left = (rect.right + 10) + 'px';
-    tooltip.style.top = rect.top + 'px';
-    
-    // Keep tooltip on screen
-    const tr = tooltip.getBoundingClientRect();
-    if (tr.right > window.innerWidth) {
-      tooltip.style.left = (rect.left - tr.width - 10) + 'px';
-    }
-    if (tr.bottom > window.innerHeight) {
-      tooltip.style.top = (window.innerHeight - tr.height - 10) + 'px';
-    }
+  // Collapse all others
+  document.querySelectorAll('.node.expanded').forEach(n => {
+    n.classList.remove('expanded');
   });
   
-  node.addEventListener('mouseleave', () => {
-    tooltip.style.display = 'none';
-  });
-});
-
-// Draw on load and resize
-drawConnections();
-window.addEventListener('resize', drawConnections);
-
-// Scroll to show current progress area
-setTimeout(() => {
-  const current = document.querySelector('.node.current');
-  if (current) {
-    current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (!isExpanded) {
+    node.classList.add('expanded');
+    const problem = node.dataset.problem || '';
+    const requires = node.dataset.requires || 'None';
+    detail.innerHTML = `
+      <div class="problem">${problem}</div>
+      <div class="requires">⛓️ Requires: <span>${requires}</span></div>
+    `;
+    
+    // Scroll into view on mobile
+    setTimeout(() => {
+      node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
   }
-}, 500);
+}
 </script>
 
 </body>
